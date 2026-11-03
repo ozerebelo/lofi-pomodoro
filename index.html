@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="pt-PT">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- O YouTube precisa de receber o "Referer" para o leitor incorporado funcionar. -->
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <title>lofi pomodoro</title>
+    <meta name="description" content="Temporizador pomodoro com lembretes de pausa e música lofi do YouTube que toca no foco e para nas pausas." />
+    <meta name="theme-color" content="#1b1530" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+    <link rel="preconnect" href="https://www.youtube.com" />
+    <link rel="preconnect" href="https://i.ytimg.com" />
+    <link rel="stylesheet" href="css/styles.css" />
+    <script type="module" src="js/app.js"></script>
+  </head>
+  <body data-phase="work" data-status="idle">
+    <div class="sky" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <div class="brand">
+        <img src="icons/icon.svg" alt="" width="32" height="32" />
+        <span>lofi pomodoro</span>
+      </div>
+      <div class="today" title="Estatísticas de hoje">
+        <span><strong id="statPomodoros">0</strong> 🍅 hoje</span>
+        <span class="sep" aria-hidden="true">·</span>
+        <span><strong id="statFocus">0 min</strong> de foco</span>
+      </div>
+      <button id="btnSettings" class="icon-btn" type="button" aria-label="Definições" title="Definições">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+          <path fill="currentColor" d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6a.5.5 0 0 0 .1-.6l-2-3.5a.5.5 0 0 0-.6-.2l-2.5 1a7.4 7.4 0 0 0-1.7-1l-.4-2.6A.5.5 0 0 0 14 2h-4a.5.5 0 0 0-.5.4l-.4 2.7a7.4 7.4 0 0 0-1.7 1l-2.5-1a.5.5 0 0 0-.6.2l-2 3.5a.5.5 0 0 0 .1.6L4.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6a.5.5 0 0 0-.1.6l2 3.5c.1.2.4.3.6.2l2.5-1c.5.4 1.1.7 1.7 1l.4 2.7c0 .2.2.4.5.4h4c.2 0 .5-.2.5-.4l.4-2.7a7.4 7.4 0 0 0 1.7-1l2.5 1c.2.1.5 0 .6-.2l2-3.5a.5.5 0 0 0-.1-.6L19.4 13ZM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z"/>
+        </svg>
+      </button>
+    </header>
+
+    <div id="notifBanner" class="banner" hidden>
+      <p>🔔 Ativa as notificações para receberes o lembrete da pausa mesmo com a app noutra janela.</p>
+      <div class="banner-actions">
+        <button id="btnEnableNotif" class="btn btn-small" type="button">Ativar</button>
+        <button id="btnDismissNotif" class="btn btn-small btn-ghost" type="button">Agora não</button>
+      </div>
+    </div>
+
+    <main class="layout">
+      <!-- Temporizador -->
+      <section class="card timer-card" aria-labelledby="phaseLabel">
+        <div id="phaseTabs" class="tabs" role="tablist" aria-label="Fase">
+          <button type="button" role="tab" data-phase="work" aria-selected="true">Foco</button>
+          <button type="button" role="tab" data-phase="shortBreak" aria-selected="false">Pausa curta</button>
+          <button type="button" role="tab" data-phase="longBreak" aria-selected="false">Pausa longa</button>
+        </div>
+
+        <div class="dial">
+          <svg class="ring" viewBox="0 0 260 260" aria-hidden="true">
+            <circle class="ring-track" cx="130" cy="130" r="120" />
+            <circle id="ringProgress" class="ring-progress" cx="130" cy="130" r="120" />
+          </svg>
+          <div class="dial-center">
+            <h1 id="phaseLabel" class="phase-label">Foco</h1>
+            <div id="time" class="time" role="timer" aria-live="off">25:00</div>
+            <p id="cycleText" class="cycle-text">Sessão 1 de 4</p>
+            <div id="cycleDots" class="cycle-dots" aria-hidden="true"></div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button id="btnReset" class="btn btn-ghost btn-round" type="button" title="Recomeçar fase (R)" aria-label="Recomeçar fase">
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 5V2L7 6l5 4V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8Z"/></svg>
+          </button>
+          <button id="btnStart" class="btn btn-primary btn-big" type="button" aria-pressed="false">Iniciar</button>
+          <button id="btnSkip" class="btn btn-ghost btn-round" type="button" title="Saltar para a fase seguinte (S)" aria-label="Saltar para a fase seguinte">
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M5 5.5v13a.5.5 0 0 0 .8.4l9-6.5a.5.5 0 0 0 0-.8l-9-6.5a.5.5 0 0 0-.8.4ZM17 5h2v14h-2z"/></svg>
+          </button>
+        </div>
+
+        <div id="breakTip" class="break-tip" hidden>
+          <span aria-hidden="true">🌿</span>
+          <p></p>
+        </div>
+
+        <label class="switch">
+          <input id="musicToggle" type="checkbox" checked />
+          <span class="switch-track" aria-hidden="true"></span>
+          <span class="switch-text">
+            <strong>Música lofi durante o foco</strong>
+            <small id="musicHint">Toca quando o foco começar</small>
+          </span>
+        </label>
+      </section>
+
+      <!-- Música -->
+      <section class="card music-card" aria-labelledby="musicHeading">
+        <div class="music-head">
+          <h2 id="musicHeading">Música</h2>
+          <button id="btnNextRec" class="btn btn-small" type="button" title="Outra recomendação (N)">🎲 Outra recomendação</button>
+        </div>
+
+        <div class="player-frame">
+          <div id="player" class="player"></div>
+          <div id="playerStatus" class="player-status" data-kind="info">
+            <p>A carregar o leitor…</p>
+            <button class="btn btn-small" type="button" hidden>Tentar novamente</button>
+          </div>
+        </div>
+
+        <div id="nowPlaying" class="now-playing" data-playing="false">
+          <span id="nowBadge" class="badge">Recomendado</span>
+          <p id="nowTitle" class="now-title">—</p>
+          <p class="now-meta">
+            <span id="nowChannel">YouTube</span>
+            <a id="openOnYoutube" href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer">Abrir no YouTube ↗</a>
+          </p>
+        </div>
+
+        <label class="volume">
+          <span>Volume</span>
+          <input id="volume" type="range" min="0" max="100" step="1" value="60" />
+        </label>
+
+        <div id="moodChips" class="chips" role="group" aria-label="Estilo de música"></div>
+
+        <form id="urlForm" class="url-form">
+          <label for="urlInput" class="visually-hidden">Link do YouTube</label>
+          <input id="urlInput" type="text" inputmode="url" autocomplete="off" placeholder="Cola um link do YouTube (vídeo, playlist ou direto)" />
+          <button class="btn btn-small" type="submit">Tocar</button>
+        </form>
+
+        <details class="stations">
+          <summary>Todas as rádios recomendadas</summary>
+          <ul id="stationList"></ul>
+        </details>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>
+        Atalhos: <kbd>Espaço</kbd> iniciar/pausar · <kbd>R</kbd> recomeçar · <kbd>S</kbd> saltar ·
+        <kbd>N</kbd> outra música · <kbd>M</kbd> música on/off
+      </p>
+      <p class="muted">A música vem do YouTube e pertence aos respetivos autores.</p>
+    </footer>
+
+    <div id="toasts" class="toasts" aria-live="polite"></div>
+
+    <dialog id="settingsDialog" aria-labelledby="settingsTitle">
+      <form id="settingsForm" method="dialog">
+        <h2 id="settingsTitle">Definições</h2>
+
+        <fieldset>
+          <legend>Duração (minutos)</legend>
+          <div class="grid-3">
+            <label>Foco <input name="workMin" type="number" min="1" max="180" required /></label>
+            <label>Pausa curta <input name="shortBreakMin" type="number" min="1" max="60" required /></label>
+            <label>Pausa longa <input name="longBreakMin" type="number" min="1" max="120" required /></label>
+          </div>
+          <label class="inline">Pausa longa a cada
+            <input name="longBreakEvery" type="number" min="2" max="12" required /> pomodoros</label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Automático</legend>
+          <label class="check"><input name="autoStartBreaks" type="checkbox" /> Começar a pausa sozinha quando o foco acaba</label>
+          <label class="check"><input name="autoStartWork" type="checkbox" /> Começar o foco sozinho quando a pausa acaba</label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Lembretes</legend>
+          <label class="check"><input name="notifications" type="checkbox" /> Notificações do sistema</label>
+          <p id="notifStatus" class="hint"></p>
+          <label class="check"><input name="sound" type="checkbox" /> Sino ao mudar de fase</label>
+          <label class="inline">Repetir o lembrete a cada
+            <input name="reminderEveryMin" type="number" min="0" max="60" required /> min
+            enquanto não começares a fase seguinte (0 = desligado)</label>
+          <button id="btnTestAlert" class="btn btn-small btn-ghost" type="button">Testar lembrete</button>
+        </fieldset>
+
+        <fieldset>
+          <legend>Música</legend>
+          <label class="check"><input name="music" type="checkbox" /> Tocar música lofi durante o foco</label>
+          <label class="check"><input name="fadeMusic" type="checkbox" /> Baixar e subir o volume suavemente (fade)</label>
+        </fieldset>
+
+        <div class="dialog-actions">
+          <button class="btn btn-ghost" type="submit" value="cancel" formnovalidate>Cancelar</button>
+          <button class="btn btn-primary" type="submit" value="save">Guardar</button>
+        </div>
+      </form>
+    </dialog>
+  </body>
+</html>

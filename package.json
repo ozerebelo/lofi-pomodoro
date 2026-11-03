@@ -1,0 +1,15 @@
+{
+  "name": "lofi-pomodoro",
+  "version": "1.0.0",
+  "description": "Temporizador pomodoro com lembretes de pausa e música lofi do YouTube que toca no foco e para nas pausas.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
