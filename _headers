@@ -1,0 +1,17 @@
+# Gerado por `npm run headers` a partir de scripts/security-headers.mjs — não editar à mão.
+
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://www.youtube.com https://s.ytimg.com https://cloud.umami.is; style-src 'self'; img-src 'self' data: https://i.ytimg.com; font-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cloud.umami.is https://api-gateway.umami.dev; frame-src https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; manifest-src 'self'; media-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+  Cross-Origin-Opener-Policy: same-origin
+  Strict-Transport-Security: max-age=31536000
+
+/sw.js
+  Cache-Control: no-cache, must-revalidate
+
+/js/config.js
+  Cache-Control: no-cache, must-revalidate
+

@@ -1,0 +1,11 @@
+# Só a app vai para produção; isto fica no repositório mas não é publicado.
+.github
+docs
+node_modules
+scripts
+supabase
+tests
+_headers
+package.json
+package-lock.json
+README.md

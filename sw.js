@@ -2,7 +2,7 @@
 // (o temporizador funciona offline; a música precisa de internet).
 // Estratégia "rede primeiro": quando há rede vês sempre a versão mais recente.
 
-const CACHE = 'lofi-pomodoro-v1';
+const CACHE = 'lofi-pomodoro-v2';
 const SHELL = [
   './',
   './index.html',
@@ -16,6 +16,13 @@ const SHELL = [
   './js/ticker.js',
   './js/stats.js',
   './js/storage.js',
+  './js/config.js',
+  './js/analytics.js',
+  './js/account.js',
+  './js/account-ui.js',
+  './js/legal.js',
+  './privacidade.html',
+  './termos.html',
   './manifest.webmanifest',
   './icons/icon.svg',
   './icons/icon-192.png',

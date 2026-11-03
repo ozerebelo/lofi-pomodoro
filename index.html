@@ -11,8 +11,6 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-    <link rel="preconnect" href="https://www.youtube.com" />
-    <link rel="preconnect" href="https://i.ytimg.com" />
     <link rel="stylesheet" href="css/styles.css" />
     <script type="module" src="js/app.js"></script>
   </head>
@@ -29,6 +27,8 @@
         <span class="sep" aria-hidden="true">·</span>
         <span><strong id="statFocus">0 min</strong> de foco</span>
       </div>
+      <a id="donateLink" class="btn btn-small btn-ghost donate" href="#" target="_blank" rel="noopener noreferrer" hidden>☕ Apoiar</a>
+      <button id="btnAccount" class="btn btn-small account-btn" type="button" hidden>Entrar</button>
       <button id="btnSettings" class="icon-btn" type="button" aria-label="Definições" title="Definições">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
           <path fill="currentColor" d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6a.5.5 0 0 0 .1-.6l-2-3.5a.5.5 0 0 0-.6-.2l-2.5 1a7.4 7.4 0 0 0-1.7-1l-.4-2.6A.5.5 0 0 0 14 2h-4a.5.5 0 0 0-.5.4l-.4 2.7a7.4 7.4 0 0 0-1.7 1l-2.5-1a.5.5 0 0 0-.6.2l-2 3.5a.5.5 0 0 0 .1.6L4.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6a.5.5 0 0 0-.1.6l2 3.5c.1.2.4.3.6.2l2.5-1c.5.4 1.1.7 1.7 1l.4 2.7c0 .2.2.4.5.4h4c.2 0 .5-.2.5-.4l.4-2.7a7.4 7.4 0 0 0 1.7-1l2.5 1c.2.1.5 0 .6-.2l2-3.5a.5.5 0 0 0-.1-.6L19.4 13ZM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z"/>
@@ -104,6 +104,15 @@
             <p>A carregar o leitor…</p>
             <button class="btn btn-small" type="button" hidden>Tentar novamente</button>
           </div>
+          <div id="playerConsent" class="player-status consent" hidden>
+            <p class="consent-title">🎧 Música do YouTube</p>
+            <p>
+              Para tocar a música, a app carrega o leitor do YouTube (Google), que pode usar cookies
+              e recolher dados de utilização. Só o fazemos com a tua autorização.
+            </p>
+            <button id="btnConsentYoutube" class="btn btn-primary btn-small" type="button">Ativar música do YouTube</button>
+            <a href="privacidade.html#youtube">Saber mais</a>
+          </div>
         </div>
 
         <div id="nowPlaying" class="now-playing" data-playing="false">
@@ -141,6 +150,12 @@
         <kbd>N</kbd> outra música · <kbd>M</kbd> música on/off
       </p>
       <p class="muted">A música vem do YouTube e pertence aos respetivos autores.</p>
+      <nav class="footer-links" aria-label="Ligações">
+        <a href="privacidade.html">Privacidade</a>
+        <a href="termos.html">Termos</a>
+        <a id="feedbackLink" href="#" target="_blank" rel="noopener noreferrer" hidden>Dar opinião</a>
+        <a id="donateFooterLink" href="#" target="_blank" rel="noopener noreferrer" hidden>Apoiar o projeto</a>
+      </nav>
     </footer>
 
     <div id="toasts" class="toasts" aria-live="polite"></div>
@@ -183,11 +198,76 @@
           <label class="check"><input name="fadeMusic" type="checkbox" /> Baixar e subir o volume suavemente (fade)</label>
         </fieldset>
 
+        <fieldset>
+          <legend>Privacidade</legend>
+          <label class="check"><input id="consentYoutube" type="checkbox" /> Permitir o leitor do YouTube neste dispositivo</label>
+          <p class="hint">Sem esta autorização a app não contacta o YouTube (nem a música toca).</p>
+          <label class="check" id="analyticsOption"><input name="analytics" type="checkbox" /> Partilhar estatísticas anónimas de utilização</label>
+          <p class="hint" id="analyticsHint">Sem cookies nem dados pessoais; ajudam a perceber o que melhorar. <a href="privacidade.html#estatisticas">Mais informação</a></p>
+        </fieldset>
+
         <div class="dialog-actions">
           <button class="btn btn-ghost" type="submit" value="cancel" formnovalidate>Cancelar</button>
           <button class="btn btn-primary" type="submit" value="save">Guardar</button>
         </div>
       </form>
+    </dialog>
+
+    <dialog id="accountDialog" aria-labelledby="accountTitle">
+      <div class="dialog-body">
+        <div class="dialog-head">
+          <h2 id="accountTitle">A tua conta</h2>
+          <button class="toast-close" type="button" data-close aria-label="Fechar">×</button>
+        </div>
+
+        <section data-view="email">
+          <p>Guarda as tuas definições e o histórico de pomodoros e usa-os em qualquer dispositivo.</p>
+          <form id="accountEmailForm" class="stack">
+            <label for="accountEmailInput">Email</label>
+            <input id="accountEmailInput" type="email" autocomplete="email" required maxlength="254" placeholder="tu@exemplo.pt" />
+            <button class="btn btn-primary" type="submit">Enviar código de acesso</button>
+          </form>
+          <p class="hint-block">Sem palavras-passe: recebes um código de 6 dígitos por email. Ao continuar aceitas os <a href="termos.html">termos</a> e a <a href="privacidade.html#conta">política de privacidade</a>.</p>
+          <p class="form-error" role="alert" hidden></p>
+        </section>
+
+        <section data-view="code" hidden>
+          <p>Enviámos um código para <strong id="accountCodeEmail"></strong>. Escreve-o aqui, ou abre o link do email <em>neste navegador</em>.</p>
+          <form id="accountCodeForm" class="stack">
+            <label for="accountCodeInput">Código</label>
+            <input id="accountCodeInput" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8" required placeholder="123456" />
+            <button class="btn btn-primary" type="submit">Entrar</button>
+          </form>
+          <div class="row">
+            <button id="btnResendCode" class="btn btn-small btn-ghost" type="button">Reenviar código</button>
+            <button id="btnOtherEmail" class="btn btn-small btn-ghost" type="button">Usar outro email</button>
+          </div>
+          <p class="hint-block">Não chegou? Vê a pasta de spam. O código expira em 1 hora.</p>
+          <p class="form-error" role="alert" hidden></p>
+        </section>
+
+        <section data-view="profile" hidden>
+          <dl class="facts">
+            <dt>Email</dt><dd id="accountEmail"></dd>
+            <dt>Plano</dt><dd id="accountPlan">Grátis</dd>
+            <dt>Sincronização</dt><dd id="accountSync"></dd>
+          </dl>
+          <div class="row">
+            <button id="btnExport" class="btn btn-small" type="button">⬇️ Exportar os meus dados</button>
+            <button id="btnSignOut" class="btn btn-small btn-ghost" type="button">Terminar sessão</button>
+          </div>
+          <details class="danger-zone">
+            <summary>Apagar conta</summary>
+            <p>Apaga para sempre a conta, as definições guardadas e todo o histórico. Não dá para desfazer.</p>
+            <label for="deleteConfirm">Escreve <strong>APAGAR</strong> para confirmar</label>
+            <div class="row">
+              <input id="deleteConfirm" type="text" autocomplete="off" />
+              <button id="btnDeleteAccount" class="btn btn-small btn-danger" type="button" disabled>Apagar conta</button>
+            </div>
+          </details>
+          <p class="form-error" role="alert" hidden></p>
+        </section>
+      </div>
     </dialog>
   </body>
 </html>

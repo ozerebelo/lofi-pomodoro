@@ -28,6 +28,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   sound: true,
   music: true,
   fadeMusic: true,
+  analytics: true,
 });
 
 const LIMITS = {

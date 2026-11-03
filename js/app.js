@@ -15,6 +15,10 @@ import { Notifier, randomTip } from './notify.js';
 import { createTicker } from './ticker.js';
 import { normalizeStats, recordPomodoro, formatFocus } from './stats.js';
 import * as store from './storage.js';
+import { CONFIG } from './config.js';
+import { initAnalytics, disableAnalytics, track, trackDailyVisit, analyticsAvailable, privacySignal } from './analytics.js';
+import { Account, accountsEnabled, hasStoredSession, isAuthRedirect, friendlyError } from './account.js';
+import { setupAccountUI } from './account-ui.js';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
@@ -50,6 +54,12 @@ let consecutiveFailures = 0;
 let awaiting = null; // fase terminada à espera de o utilizador começar a seguinte
 let currentTip = randomTip();
 let lastRender = '';
+/** Autorização para carregar o YouTube neste dispositivo: null = ainda não decidiu. */
+let consent = { youtube: null, ...store.load('consent', {}) };
+let accountUI = null;
+let reconciledUser = null;
+let pushTimer = null;
+const account = new Account({ onChange: onAccountChange });
 
 const timer = new PomodoroTimer({ settings });
 const notifier = new Notifier();
@@ -92,6 +102,10 @@ function shouldPlayMusic() {
 function syncMusic() {
   if (!current) return;
   if (shouldPlayMusic()) {
+    if (!consent.youtube) {
+      promptYoutubeConsent();
+      return;
+    }
     hideToast('autoplay');
     player.play({ fade: settings.fadeMusic });
   } else {
@@ -134,6 +148,12 @@ function setCurrent(next) {
   };
   renderNowPlaying();
   renderStations();
+  loadPlayer();
+}
+
+/** Carrega o leitor da música atual — só se houver autorização para o YouTube. */
+function loadPlayer() {
+  if (!current) return;
   player.wantPlaying = shouldPlayMusic();
   if (window.location.protocol === 'file:') {
     setPlayerStatus(
@@ -142,12 +162,47 @@ function setCurrent(next) {
     );
     return;
   }
+  if (!consent.youtube) {
+    player.destroy();
+    setPlayerStatus(null);
+    $('#playerConsent').hidden = false;
+    return;
+  }
+  $('#playerConsent').hidden = true;
   player.load(current.source).catch(() => {
     setPlayerStatus(
       'Não foi possível ligar ao YouTube. Verifica a ligação à internet ou bloqueadores de conteúdo.',
       'error',
       { retry: true },
     );
+  });
+}
+
+// --- Consentimento (RGPD): o YouTube só é contactado depois de autorizado ----
+
+function grantYoutube() {
+  consent = { youtube: true, at: new Date().toISOString() };
+  store.save('consent', consent);
+  $('#consentYoutube').checked = true;
+  hideToast('consent');
+  track('musica_autorizada');
+  loadPlayer(); // se o foco estiver a decorrer, a música começa assim que o leitor estiver pronto
+}
+
+function revokeYoutube() {
+  consent = { youtube: false, at: new Date().toISOString() };
+  store.save('consent', consent);
+  hideToast('consent');
+  loadPlayer(); // destrói o leitor e mostra o pedido de autorização
+}
+
+function promptYoutubeConsent() {
+  // Quem recusou explicitamente não é incomodado; pode mudar nas definições.
+  if (consent.youtube === false || !settings.music) return;
+  showToast('Para ouvires música lofi durante o foco, autoriza o leitor do YouTube.', {
+    id: 'consent',
+    timeout: 15000,
+    action: { label: '🎧 Ativar música', onClick: grantYoutube },
   });
 }
 
@@ -259,6 +314,10 @@ timer.on('complete', ({ from, to, skipped, autoStarted, durationMs }) => {
   if (from === PHASE.WORK && !skipped) {
     stats = recordPomodoro(stats, durationMs);
     store.save('stats', stats);
+    const endedAt = Date.now();
+    account.queueSession({ startedAt: endedAt - durationMs, endedAt, durationMs });
+    track('pomodoro_concluido', { minutos: Math.round(durationMs / 60_000) });
+    setTimeout(maybeNudgeDonation, 4000);
   }
   if (isBreak(to)) currentTip = randomTip();
   awaiting = autoStarted ? null : { to, lastNag: Date.now() };
@@ -557,6 +616,10 @@ function openSettings() {
     if (input.type === 'checkbox') input.checked = value;
     else input.value = value;
   }
+  $('#consentYoutube').checked = Boolean(consent.youtube);
+  const canAnalytics = analyticsAvailable() && !privacySignal();
+  $('#analyticsOption').hidden = !canAnalytics;
+  $('#analyticsHint').hidden = !canAnalytics;
   renderNotificationState();
   dialog.showModal();
 }
@@ -569,16 +632,128 @@ form.addEventListener('submit', (event) => {
     if (!input) continue;
     data[key] = input.type === 'checkbox' ? input.checked : input.value;
   }
-  const wasMusic = settings.music;
-  settings = sanitizeSettings(data);
+  applySettings(data);
+  settingsChanged();
+
+  const wantYoutube = $('#consentYoutube').checked;
+  if (wantYoutube && !consent.youtube) grantYoutube();
+  else if (!wantYoutube && consent.youtube) revokeYoutube();
+
+  if (settings.notifications) askNotifications();
+  renderNotificationState();
+});
+
+/** Aplica definições (do formulário ou vindas da conta) e efeitos secundários. */
+function applySettings(next) {
+  const before = settings;
+  settings = sanitizeSettings({ ...settings, ...next });
   store.save('settings', settings);
   timer.updateSettings(settings);
   syncMusicToggle();
-  if (wasMusic !== settings.music) syncMusic();
-  if (settings.notifications) askNotifications();
-  renderNotificationState();
+  if (before.music !== settings.music) syncMusic();
+  if (before.analytics && !settings.analytics) disableAnalytics();
+  if (!before.analytics && settings.analytics) initAnalytics({ allowed: true });
   render(true);
-});
+}
+
+/** Marca a alteração local e envia para a conta (com um pequeno atraso). */
+function settingsChanged() {
+  store.save('settingsUpdatedAt', Date.now());
+  if (!account.signedIn) return;
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(async () => {
+    try {
+      const saved = await account.pushSettings(settings);
+      if (saved?.updated_at) store.save('settingsUpdatedAt', Date.parse(saved.updated_at));
+    } catch {
+      /* volta a tentar na próxima alteração ou no próximo login */
+    }
+  }, 1500);
+}
+
+// ---------------------------------------------------------------------------
+// Conta
+// ---------------------------------------------------------------------------
+
+function onAccountChange() {
+  accountUI?.renderButton();
+  if (!account.signedIn) {
+    reconciledUser = null;
+    return;
+  }
+  if (reconciledUser === account.user.id) return;
+  reconciledUser = account.user.id;
+  reconcileSettings();
+}
+
+/** Ao entrar: fica a versão mais recente das definições (conta vs. dispositivo). */
+async function reconcileSettings() {
+  try {
+    const remote = await account.pullSettings();
+    const localStamp = Number(store.load('settingsUpdatedAt', 0)) || 0;
+    const remoteStamp = remote ? Date.parse(remote.updated_at) : 0;
+    if (remote && remoteStamp > localStamp) {
+      applySettings(remote.settings);
+      store.save('settingsUpdatedAt', remoteStamp);
+    } else {
+      const saved = await account.pushSettings(settings);
+      if (saved?.updated_at) store.save('settingsUpdatedAt', Date.parse(saved.updated_at));
+    }
+  } catch {
+    /* sem rede: fica para o próximo login/arranque */
+  }
+}
+
+// --- Doações e opinião -------------------------------------------------------
+
+function safeExternalUrl(url) {
+  try {
+    return ['https:', 'mailto:'].includes(new URL(url).protocol);
+  } catch {
+    return false;
+  }
+}
+
+function setupLinks() {
+  const links = [
+    ['#donateLink', CONFIG.donateUrl, 'doacao_clique'],
+    ['#donateFooterLink', CONFIG.donateUrl, 'doacao_clique'],
+    ['#feedbackLink', CONFIG.feedbackUrl, 'opiniao_clique'],
+  ];
+  for (const [sel, url, event] of links) {
+    if (!safeExternalUrl(url)) continue;
+    const el = $(sel);
+    el.href = url;
+    el.hidden = false;
+    el.addEventListener('click', () => track(event));
+  }
+}
+
+const DONATION_MILESTONES = [10, 50, 150];
+
+/** Lembrete simpático (uma vez por marco) para apoiar o projeto. */
+function maybeNudgeDonation() {
+  if (!safeExternalUrl(CONFIG.donateUrl)) return;
+  const seen = store.load('nudges', []);
+  const shown = Array.isArray(seen) ? seen : [];
+  const milestone = DONATION_MILESTONES.find((m) => stats.totalPomodoros >= m && !shown.includes(m));
+  if (!milestone) return;
+  store.save('nudges', [...shown, milestone]);
+  showToast(
+    `🍅 Já fizeste ${stats.totalPomodoros} pomodoros com o lofi pomodoro! Se te está a ajudar, considera apoiar o projeto.`,
+    {
+      id: 'nudge',
+      timeout: 15000,
+      action: {
+        label: '☕ Apoiar',
+        onClick: () => {
+          track('doacao_clique', { origem: 'lembrete' });
+          window.open(CONFIG.donateUrl, '_blank', 'noopener,noreferrer');
+        },
+      },
+    },
+  );
+}
 
 $('#btnTestAlert').addEventListener('click', async () => {
   notifier.unlockAudio();
@@ -634,15 +809,13 @@ for (const tab of $$('#phaseTabs [data-phase]')) {
 }
 
 $('#musicToggle').addEventListener('change', (event) => {
-  settings = sanitizeSettings({ ...settings, music: event.target.checked });
-  store.save('settings', settings);
-  timer.updateSettings(settings);
-  syncMusic();
-  render(true);
+  applySettings({ music: event.target.checked });
+  settingsChanged();
 });
 
 $('#btnNextRec').addEventListener('click', () => {
   userGesture();
+  track('musica_outra');
   musicPrefs.pinned = null;
   saveMusicPrefs();
   consecutiveFailures = 0;
@@ -678,12 +851,18 @@ $('#urlForm').addEventListener('submit', (event) => {
       : source.type === 'channelLive'
         ? 'Transmissão em direto do canal'
         : 'Vídeo do YouTube';
+  track('link_colado', { tipo: source.type });
   musicPrefs.pinned = { source, title, channel: 'YouTube' };
   saveMusicPrefs();
   consecutiveFailures = 0;
   setCurrent({ source, title, channel: 'YouTube', reason: 'custom' });
 });
 $('#urlInput').addEventListener('input', (event) => event.target.setCustomValidity(''));
+
+$('#btnConsentYoutube').addEventListener('click', () => {
+  userGesture();
+  grantYoutube();
+});
 
 $('#playerStatus button').addEventListener('click', () => {
   if (current) setCurrent(current);
@@ -701,7 +880,7 @@ $('#btnDismissNotif').addEventListener('click', () => {
 
 document.addEventListener('keydown', (event) => {
   if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
-  if (dialog.open) return;
+  if (document.querySelector('dialog[open]')) return;
   const target = event.target;
   if (target instanceof HTMLElement && target.closest('input, textarea, select, [contenteditable]')) return;
 
@@ -758,10 +937,46 @@ function boot() {
 
   render(true);
   createTicker(onTick, 250);
+  setupLinks();
+  bootAccountAndAnalytics();
+  window.addEventListener('online', () => account.flushOutbox());
 
   if ('serviceWorker' in navigator && /^https?:$/.test(window.location.protocol)) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
+}
+
+function bootAccountAndAnalytics() {
+  // Se viemos de um link de login, primeiro troca-se o ?code= pela sessão e
+  // limpa-se o endereço; só depois arrancam as estatísticas.
+  const authRedirect = isAuthRedirect();
+  let ready = Promise.resolve();
+
+  if (accountsEnabled) {
+    accountUI = setupAccountUI({ account, showToast, track });
+    if (authRedirect || hasStoredSession()) {
+      ready = account
+        .init()
+        .then(() => {
+          accountUI.renderButton();
+          if (authRedirect && account.signedIn) {
+            showToast('Sessão iniciada ✨ As tuas definições e sessões ficam sincronizadas.', { timeout: 5000 });
+          } else if (authRedirect) {
+            // Com PKCE o link só funciona no navegador onde foi pedido.
+            showToast(
+              'Este link de acesso é inválido, expirou ou foi aberto noutro navegador. Pede um código novo em "Entrar".',
+              { timeout: 9000 },
+            );
+          }
+        })
+        .catch((err) => showToast(friendlyError(err), { timeout: 6000 }));
+    }
+  }
+
+  ready.finally(() => {
+    if (authRedirect) window.history.replaceState(null, '', window.location.pathname);
+    if (initAnalytics({ allowed: settings.analytics })) trackDailyVisit();
+  });
 }
 
 boot();

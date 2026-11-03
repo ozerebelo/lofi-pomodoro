@@ -7,9 +7,13 @@
   "license": "MIT",
   "scripts": {
     "start": "node scripts/serve.mjs",
-    "test": "node --test"
+    "test": "node --test",
+    "headers": "node scripts/build-headers.mjs"
   },
   "engines": {
     "node": ">=18"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.10"
   }
 }

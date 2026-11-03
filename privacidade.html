@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="pt-PT">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacidade — lofi pomodoro</title>
+    <meta name="description" content="Política de privacidade do lofi pomodoro." />
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="css/styles.css" />
+    <script type="module" src="js/legal.js"></script>
+  </head>
+  <body>
+    <div class="sky" aria-hidden="true"></div>
+    <header class="topbar">
+      <a class="brand" href="./">
+        <img src="icons/icon.svg" alt="" width="32" height="32" />
+        <span>lofi pomodoro</span>
+      </a>
+    </header>
+
+    <main class="doc card">
+      <h1>Política de privacidade</h1>
+      <p class="muted">Última atualização: <span data-config="lastUpdated"></span></p>
+
+      <p>
+        <strong>Em resumo:</strong> sem conta, os teus dados ficam só no teu navegador. O YouTube só é
+        carregado se autorizares. As estatísticas de utilização são anónimas e não usam cookies. Se criares
+        conta, guardamos o teu email, as tuas definições e as sessões de foco, e podes exportar ou apagar
+        tudo a qualquer momento na própria app.
+      </p>
+
+      <h2>Quem é responsável</h2>
+      <p>
+        Responsável pelo tratamento: <span data-config="controllerName"></span>.<br />
+        Contacto para questões de privacidade: <span data-config="contactEmail"></span>.
+      </p>
+
+      <h2 id="local">1. Sem conta: dados guardados no teu dispositivo</h2>
+      <p>
+        A app funciona sem conta. As definições, as estatísticas do dia, a música escolhida e o estado do
+        temporizador ficam guardados no armazenamento local do navegador (<code>localStorage</code>), só
+        servem para a app funcionar e nunca nos são enviados. Podes apagá-los limpando os dados do site
+        no navegador.
+      </p>
+
+      <h2 id="youtube">2. Música do YouTube</h2>
+      <p>
+        A música vem do YouTube (Google Ireland Limited / Google LLC). O leitor do YouTube
+        <strong>só é carregado depois de autorizares</strong> ("Ativar música do YouTube"). Até lá, a app
+        não contacta o YouTube. Depois de carregado, o YouTube pode usar cookies e tecnologias semelhantes e
+        recolher dados de utilização (por exemplo, o endereço IP e o que reproduzes), como responsável pelo
+        tratamento independente, segundo a
+        <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">política de privacidade da Google</a>.
+        Base legal: o teu consentimento. Podes retirá-lo em ⚙️ Definições → Privacidade.
+      </p>
+
+      <h2 id="estatisticas">3. Estatísticas de utilização anónimas</h2>
+      <p>
+        Para perceber como a app é usada, contamos visitas e alguns eventos (por exemplo, "pomodoro
+        concluído", "outra recomendação") sem cookies e sem identificadores pessoais. Não guardamos o
+        endereço IP e os eventos não incluem o email nem o id da conta. Para medir se as pessoas voltam, a
+        app guarda no teu dispositivo a data da primeira visita e o número de dias de utilização, e envia
+        apenas intervalos (por exemplo, "2 a 7 dias"). Base legal: interesse legítimo em melhorar o serviço.
+        Podes desligar em ⚙️ Definições → Privacidade. Se o teu navegador enviar o sinal "Do Not Track" ou
+        "Global Privacy Control", nada é enviado.
+      </p>
+
+      <h2 id="conta">4. Conta</h2>
+      <p>Se criares conta, tratamos:</p>
+      <ul>
+        <li><strong>Email</strong>: para te identificar e enviar o código de acesso (não há palavras-passe);</li>
+        <li><strong>Definições da app</strong>: para as sincronizar entre dispositivos;</li>
+        <li><strong>Sessões de foco concluídas</strong> (início, fim e duração): para o histórico e as estatísticas;</li>
+        <li><strong>Plano</strong> (grátis/premium) e, no futuro, a referência da subscrição no fornecedor de pagamentos.</li>
+      </ul>
+      <p>
+        Base legal: execução do contrato (prestar o serviço que pediste). Guardamos estes dados enquanto a
+        conta existir. Ao apagares a conta, todos estes dados são apagados de imediato. As cópias de
+        segurança do fornecedor são substituídas num prazo curto.
+      </p>
+
+      <h2 id="pagamentos">5. Pagamentos</h2>
+      <p>
+        Se no futuro houver um plano pago, o pagamento será feito por um fornecedor especializado, que atua
+        como revendedor. Nunca vemos nem guardamos os dados do teu cartão.
+      </p>
+
+      <h2 id="subcontratantes">6. Fornecedores (subcontratantes)</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Fornecedor</th><th>Para quê</th><th>Dados</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Vercel Inc.</td><td>Alojamento do site</td><td>Registos técnicos de acesso (IP, navegador), por segurança</td></tr>
+            <tr><td>Supabase Inc. (servidores na UE)</td><td>Base de dados e autenticação</td><td>Dados da conta (secção 4)</td></tr>
+            <tr><td>Fornecedor de email (SMTP)</td><td>Envio do código de acesso</td><td>Email</td></tr>
+            <tr><td>Umami / Vercel Analytics</td><td>Estatísticas anónimas</td><td>Eventos sem dados pessoais</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Alguns fornecedores são dos EUA. Nesses casos, as transferências estão protegidas pelo EU-US Data
+        Privacy Framework e/ou por cláusulas contratuais-tipo aprovadas pela Comissão Europeia.
+      </p>
+
+      <h2 id="direitos">7. Os teus direitos</h2>
+      <p>
+        Tens direito de acesso, retificação, apagamento, portabilidade, limitação e oposição, e podes retirar
+        o consentimento a qualquer momento. Na app: <strong>Conta → Exportar os meus dados</strong> (cópia
+        completa em JSON) e <strong>Conta → Apagar conta</strong>. Para tudo o resto, escreve para
+        <span data-config="contactEmail"></span>. Tens também o direito de apresentar reclamação à
+        <a href="https://www.cnpd.pt" target="_blank" rel="noopener noreferrer">Comissão Nacional de Proteção de Dados (CNPD)</a>.
+      </p>
+
+      <h2 id="seguranca">8. Segurança</h2>
+      <p>
+        As ligações são cifradas (HTTPS). Na base de dados, cada conta só consegue aceder aos seus próprios
+        dados, regra imposta pelo próprio servidor. O acesso faz-se por código de uso único enviado por email,
+        sem palavras-passe guardadas. Não vendemos nem partilhamos os teus dados para publicidade.
+      </p>
+
+      <h2>9. Alterações</h2>
+      <p>Se esta política mudar de forma relevante, avisamos na app antes de a alteração produzir efeitos.</p>
+
+      <p><a href="./">← Voltar à app</a></p>
+    </main>
+  </body>
+</html>
